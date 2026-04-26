@@ -1,5 +1,9 @@
 # Maestro-Slack
 
+## Acknowledgments
+
+This project is based on the architecture and design patterns from [Maestro-Discord](https://github.com/RunMaestro/Maestro-Discord), developed by [Chris](https://github.com/chr1syy). Maestro-Slack adapts these proven patterns for Slack integration, enabling seamless communication between Slack channels and Maestro agents.
+
 A Slack bot that bridges messages to Maestro agents via `maestro-cli`.
 
 ## Quick Start
@@ -19,9 +23,8 @@ A Slack bot that bridges messages to Maestro agents via `maestro-cli`.
 2. **Create Slack app**
    - Go to https://api.slack.com/apps
    - Click "Create New App"
-   - Upload `app_manifest.json` (or copy-paste the manifest)
-   - Install to your workspace
-   - Copy bot token and signing secret
+   - Choose "From scratch" or use manifest
+   - Copy your App ID and Bot Token
 
 3. **Configure environment**
    ```bash
@@ -30,19 +33,33 @@ A Slack bot that bridges messages to Maestro agents via `maestro-cli`.
    # SLACK_BOT_TOKEN=xoxb-...
    # SLACK_SIGNING_SECRET=...
    # SLACK_APP_ID=...
+   # SLACK_TEAM_ID=... (from workspace settings)
    ```
 
-4. **Run in development**
+4. **Generate app manifest** (required for both setup paths)
    ```bash
-   npm run dev
+   npm run update-manifest
    ```
-   This starts the bot with hot-reload via `tsx`.
+   This creates `app_manifest.json` from the template with your configuration.
 
-5. **Deploy to Slack**
+5. **Choose your setup path:**
+
+   **Option A: Socket Mode (Development - Recommended)**
+   - Visit: `https://app.slack.com/app-settings/{TEAM_ID}/{APP_ID}/socket-mode`
+   - Enable "Socket Mode"
+   - Copy the token and add to `.env`: `SLACK_SOCKET_MODE_TOKEN=xapp-...`
+   - Run: `npm run dev`
+   - No public URL needed, works locally
+
+   **Option B: Webhook Mode (Production)**
+   - Upload the generated `app_manifest.json` to Slack app settings
+   - Set `SLACK_BOT_PUBLIC_URL` to your deployment URL
+   - Run: `npm run update-manifest` to regenerate manifest
+   - Upload updated manifest to Slack
    - Get your public HTTPS URL (e.g., from ngrok, Railway, Render)
    - In Slack app settings → Event Subscriptions
    - Set Request URL to `https://your-domain.com/slack/events`
-   - Slack will verify the request
+   - Run: `npm start`
 
 ## Development Workflow
 
@@ -123,6 +140,13 @@ See `research/` folder for detailed comparison.
 
 ## Troubleshooting
 
+### Verify Setup
+First, run the diagnostic command to check your configuration:
+```bash
+npm run doctor
+```
+This verifies your slash commands, provides setup guidance, and shows direct links to Slack app settings.
+
 ### Bot not responding to messages
 - Check SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET in `.env`
 - Verify channel is registered with `/agents` command
@@ -140,12 +164,20 @@ See `research/` folder for detailed comparison.
 ## Environment Variables
 
 ```
-SLACK_BOT_TOKEN          # xoxb-... token
-SLACK_SIGNING_SECRET     # Signing secret from app settings
-SLACK_APP_ID             # App ID
-SLACK_ALLOWED_USER_IDS   # Comma-separated list (optional)
-API_PORT                 # Default: 3457
+SLACK_BOT_TOKEN              # xoxb-... token
+SLACK_SIGNING_SECRET         # Signing secret from app settings
+SLACK_APP_ID                 # App ID from app settings
+SLACK_TEAM_ID                # Workspace Team ID (from workspace settings)
+SLACK_SOCKET_MODE_TOKEN      # xapp-... token (for Socket Mode development)
+SLACK_BOT_PUBLIC_URL         # Public URL (for webhook mode production)
+SLACK_ALLOWED_USER_IDS       # Comma-separated list (optional)
+API_PORT                     # Default: 3457
 ```
+
+### Setup Modes
+
+- **Socket Mode** (`SLACK_SOCKET_MODE_TOKEN` set): Uses WebSocket for local development, no public URL needed
+- **Webhook Mode** (`SLACK_BOT_PUBLIC_URL` set): Uses HTTP webhooks for production deployment
 
 ## Testing
 
@@ -157,16 +189,31 @@ Tests use Node.js built-in test runner (`node --test`).
 
 ## Deployment
 
-### Production Setup
-1. Deploy app to production server (e.g., Railway, Render, DigitalOcean)
-2. Set event subscription URL in Slack app settings
-3. Configure environment variables on server
-4. Run: `npm install && npm run build && npm start`
+### Production Setup (Webhook Mode)
+1. Set `SLACK_BOT_PUBLIC_URL` to your deployment domain
+2. Run: `npm run update-manifest` to generate manifest with your URL
+3. Upload generated `app_manifest.json` to Slack app settings
+4. Deploy app to production server (e.g., Railway, Render, DigitalOcean)
+5. Configure environment variables on server (all required ENV vars)
+6. Run: `npm install && npm run build && npm start`
+
+### Development Setup (Socket Mode)
+1. Enable Socket Mode in Slack app settings
+2. Copy token and set `SLACK_SOCKET_MODE_TOKEN` in `.env`
+3. Run: `npm run doctor` to verify setup
+4. Run: `npm run dev` to start with hot-reload
+
+### Verification
+```bash
+npm run doctor
+```
+This checks your slash commands configuration and provides setup guidance.
 
 ### Monitoring
 - Check logs for errors
 - Monitor `/api/health` endpoint
 - Verify messages are reaching agents
+- Run `npm run doctor` periodically to verify configuration
 
 ## Contributing
 
