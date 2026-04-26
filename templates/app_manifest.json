@@ -1,0 +1,64 @@
+{
+    "display_information": {
+        "name": "Maestro"
+    },
+    "features": {
+        "bot_user": {
+            "display_name": "Maestro",
+            "always_online": false
+        },
+        "slash_commands": [
+            {
+                "command": "/health",
+                "url": "{{SLACK_BOT_PUBLIC_URL}}/slack/events",
+                "description": "Check bot health",
+                "usage_hint": "No arguments",
+                "should_escape": false
+            },
+            {
+                "command": "/agents",
+                "url": "{{SLACK_BOT_PUBLIC_URL}}/slack/events",
+                "description": "Manage Maestro agents in this channel",
+                "usage_hint": "[list|new <id>|disconnect [id]|readonly <id> <on|off>]",
+                "should_escape": false
+            },
+            {
+                "command": "/session",
+                "url": "{{SLACK_BOT_PUBLIC_URL}}/slack/events",
+                "description": "Start a new agent session in a thread",
+                "usage_hint": "new [session-name]",
+                "should_escape": false
+            }
+        ]
+    },
+    "oauth_config": {
+        "scopes": {
+            "bot": [
+                "chat:write",
+                "commands",
+                "app_mentions:read",
+                "channels:read",
+                "channels:manage",
+                "channels:history",
+                "users:read",
+                "mpim:history",
+                "reactions:write"
+            ]
+        },
+        "pkce_enabled": false
+    },
+    "settings": {
+        "event_subscriptions": {
+            "request_url": "{{SLACK_BOT_PUBLIC_URL}}/slack/events",
+            "bot_events": [
+                "app_mention",
+                "message.channels",
+                "message.mpim"
+            ]
+        },
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": false,
+        "token_rotation_enabled": false,
+        "is_mcp_enabled": false
+    }
+}
