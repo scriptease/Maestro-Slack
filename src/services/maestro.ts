@@ -79,17 +79,6 @@ export async function sendToAgent(message: QueuedMessage): Promise<void> {
   const client = new WebClient(config.token);
 
   try {
-    // If no active session, list sessions and use the latest
-    if (!sessionId) {
-      const sessions = await listSessions(agentId);
-      if (sessions.length === 0) {
-        logger.warn(`No active sessions for agent ${agentId}`);
-        return;
-      }
-      sessionId = sessions[0].id;
-      conversationDb.updateSession(message.thread_ts, sessionId);
-    }
-
     // Add loading reaction
     await client.reactions.add({
       channel: message.channel,
@@ -101,12 +90,11 @@ export async function sendToAgent(message: QueuedMessage): Promise<void> {
     // Send message to agent
     const msg = `[Slack] ${message.text}`;
     const cliPath = process.env.MAESTRO_CLI_PATH || 'node /Applications/Maestro.app/Contents/Resources/maestro-cli.js';
-    const output = execSync(`${cliPath} send ${agentId} "${msg.replace(/"/g, '\\"')}"`, {
+    const sessionArg = sessionId ? `-s ${sessionId}` : '';
+    const output = execSync(`${cliPath} send ${sessionArg} ${agentId} "${msg.replace(/"/g, '\\"')}"`.trim(), {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
     });
-
-    logger.info(`Sent message to agent ${agentId} in session ${sessionId}`);
 
     // Remove loading reaction
     await client.reactions.remove({
@@ -119,6 +107,15 @@ export async function sendToAgent(message: QueuedMessage): Promise<void> {
     // Parse response and post to Slack
     try {
       const response = JSON.parse(output);
+
+      // Persist session ID if this was the first message (session was just created)
+      if (!sessionId && response.sessionId) {
+        conversationDb.updateSession(message.thread_ts, response.sessionId);
+        logger.info(`Created new session ${response.sessionId} for agent ${agentId}`);
+      }
+
+      logger.info(`Sent message to agent ${agentId} in session ${response.sessionId || sessionId}`);
+
       if (response.response) {
         await client.chat.postMessage({
           channel: message.channel,
