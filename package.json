@@ -23,6 +23,9 @@
     "dotenv": "^16.0.0",
     "express": "^4.18.0"
   },
+  "overrides": {
+    "@slack/socket-mode": "^2.0.0"
+  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.0.0",
